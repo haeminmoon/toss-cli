@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { createClient, mcpJson, withErrorHandling, defineTool } from '../helpers';
-import { CANDLE_INTERVALS } from '../../config/constants';
+import { CANDLE_INTERVALS, DEFAULT_CANDLE_COUNT } from '../../config/constants';
 import { parseSymbols, validateSymbol, parseEnum } from '../../utils/validate';
 
 export function registerMarketTools(server: McpServer): void {
@@ -73,12 +73,18 @@ export function registerMarketTools(server: McpServer): void {
     server,
     'get_candles',
     {
-      description: 'Get OHLCV candles (1m or 1d, up to 200) for a symbol.',
+      description:
+        'Get OHLCV candles (1m or 1d) for a symbol. Returns up to 200 candles per request; to fetch more, pass the response\'s nextBefore cursor as `before` on the next call and repeat until nextBefore is null.',
       inputSchema: {
         symbol: z.string().describe('Stock symbol'),
         interval: z.string().describe(`Candle interval (${CANDLE_INTERVALS.join(', ')})`),
-        count: z.number().min(1).max(200).optional().describe('Number of candles (max 200)'),
-        before: z.string().optional().describe('Pagination: ISO 8601 time; only candles before it'),
+        count: z
+          .number()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe('Number of candles (max 200 per request; default 200). Paginate via nextBefore for more.'),
+        before: z.string().optional().describe('Pagination: ISO 8601 time / nextBefore cursor; only candles before it'),
         adjusted: z.boolean().optional().describe('Apply adjusted prices'),
       },
     },
@@ -88,7 +94,11 @@ export function registerMarketTools(server: McpServer): void {
         if ('error' in c) return c.error;
         const iv = parseEnum(interval, CANDLE_INTERVALS, 'interval');
         return mcpJson(
-          await c.client.getCandles(validateSymbol(symbol), iv, { count, before, adjusted }),
+          await c.client.getCandles(validateSymbol(symbol), iv, {
+            count: count ?? DEFAULT_CANDLE_COUNT,
+            before,
+            adjusted,
+          }),
         );
       }),
   );

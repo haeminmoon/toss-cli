@@ -2,8 +2,19 @@ import { Command } from 'commander';
 import { createClient } from './_helpers';
 import { output, getOutputFormat } from '../output/formatter';
 import { handleError } from '../output/error';
-import { CANDLE_INTERVALS, type CandleInterval } from '../config/constants';
-import { parsePositiveInt, parseSymbols, validateSymbol, parseEnum } from '../utils/validate';
+import {
+  CANDLE_INTERVALS,
+  DEFAULT_CANDLE_COUNT,
+  MAX_CANDLES_PER_REQUEST,
+  type CandleInterval,
+} from '../config/constants';
+import {
+  parsePositiveInt,
+  parseSymbols,
+  validateSymbol,
+  parseEnum,
+  validateCount,
+} from '../utils/validate';
 
 export function registerMarketCommands(program: Command): void {
   const market = program.command('market').description('Market data (prices, orderbook, trades, candles)');
@@ -79,21 +90,37 @@ export function registerMarketCommands(program: Command): void {
 
   market
     .command('candles <symbol>')
-    .description('OHLCV candles (1m or 1d, up to 200)')
+    .description(
+      `OHLCV candles (1m or 1d). Up to ${MAX_CANDLES_PER_REQUEST} per request; use --paginate to fetch more (walks the nextBefore cursor).`,
+    )
     .option('-i, --interval <interval>', `Candle interval (${CANDLE_INTERVALS.join(', ')})`, '1d')
-    .option('-n, --count <number>', 'Number of candles (max 200)')
+    .option(
+      '-n, --count <number>',
+      `Number of candles (max ${MAX_CANDLES_PER_REQUEST} per request; with --paginate, total to fetch)`,
+    )
+    .option('--paginate', `Auto-paginate past the ${MAX_CANDLES_PER_REQUEST}/request cap to reach --count`)
     .option('--before <iso>', 'Pagination: only candles before this ISO 8601 time')
     .option('--adjusted', 'Apply adjusted prices')
     .option('-o, --output <format>', 'Output format (table/json)', 'table')
     .action(async (symbol: string, options) => {
       try {
         const interval = parseEnum<CandleInterval>(options.interval, CANDLE_INTERVALS, 'interval');
-        const count = options.count ? parsePositiveInt(options.count, 'count') : undefined;
-        const data = await createClient().getCandles(validateSymbol(symbol), interval, {
-          count,
-          before: options.before,
-          adjusted: options.adjusted ? true : undefined,
-        });
+        const sym = validateSymbol(symbol);
+        const adjusted = options.adjusted ? true : undefined;
+        const count = options.count
+          ? parsePositiveInt(options.count, 'count')
+          : DEFAULT_CANDLE_COUNT;
+        const client = createClient();
+        const data = options.paginate
+          ? await client.getMultipleCandles(sym, interval, count, {
+              before: options.before,
+              adjusted,
+            })
+          : await client.getCandles(sym, interval, {
+              count: validateCount(count, MAX_CANDLES_PER_REQUEST, 'count'),
+              before: options.before,
+              adjusted,
+            });
         if (getOutputFormat(options) === 'json') {
           output(data, 'json');
           return;

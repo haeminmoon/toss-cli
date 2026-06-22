@@ -18,6 +18,20 @@ export function parsePositiveInt(value: string | number, name: string): number {
   return n;
 }
 
+/**
+ * Validate that a per-request count does not exceed `max`, throwing a clear
+ * local error (so a too-large single-request count fails fast instead of
+ * leaking a raw server 400). To fetch more than `max`, callers should paginate.
+ */
+export function validateCount(n: number, max: number, name: string): number {
+  if (n > max) {
+    throw new Error(
+      `Invalid ${name}: ${n} exceeds the per-request maximum of ${max}. Use --paginate to fetch more.`,
+    );
+  }
+  return n;
+}
+
 /** Parse a float strictly, throwing on failure. */
 export function parseFloatStrict(value: string | number, name: string): number {
   const n = typeof value === 'number' ? value : parseFloat(value);

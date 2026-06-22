@@ -5,6 +5,7 @@ import {
   validateSymbol,
   parseSymbols,
   parseEnum,
+  validateCount,
 } from '../../utils/validate';
 
 describe('parseIntStrict', () => {
@@ -25,6 +26,18 @@ describe('parsePositiveInt', () => {
   it('rejects zero and negatives', () => {
     expect(() => parsePositiveInt('0', 'n')).toThrow('must be a positive integer');
     expect(() => parsePositiveInt('-2', 'n')).toThrow('must be a positive integer');
+  });
+});
+
+describe('validateCount', () => {
+  it('returns the count when within the max', () => {
+    expect(validateCount(200, 200, 'count')).toBe(200);
+    expect(validateCount(1, 200, 'count')).toBe(1);
+  });
+  it('throws a clear local error when over the max', () => {
+    expect(() => validateCount(201, 200, 'count')).toThrow(
+      'Invalid count: 201 exceeds the per-request maximum of 200. Use --paginate to fetch more.',
+    );
   });
 });
 

@@ -26,6 +26,16 @@ export const REQUEST_TIMEOUT_MS = 30_000;
 export const CANDLE_INTERVALS = ['1m', '1d'] as const;
 export type CandleInterval = (typeof CANDLE_INTERVALS)[number];
 
+/**
+ * Maximum candles GET /api/v1/candles returns in a single request. The server
+ * rejects count > 200 with a 400 (`invalid-request`). To fetch more, paginate
+ * with the returned `nextBefore` cursor.
+ */
+export const MAX_CANDLES_PER_REQUEST = 200;
+
+/** Default candle count when `-n` / `count` is omitted. */
+export const DEFAULT_CANDLE_COUNT = 200;
+
 /** Currency codes. */
 export const CURRENCIES = ['KRW', 'USD'] as const;
 export type Currency = (typeof CURRENCIES)[number];

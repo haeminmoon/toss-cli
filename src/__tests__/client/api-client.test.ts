@@ -65,6 +65,82 @@ describe('TossClient', () => {
       expect(url).toContain('count=10');
       expect(url).toContain('adjusted=true');
     });
+
+    describe('getMultipleCandles (auto-pagination)', () => {
+      // Build a page of `n` daily candles ending (exclusive) just before `beforeDay`.
+      function makePage(beforeDay: number, n: number, nextBefore: string | null) {
+        const candles = Array.from({ length: n }, (_, i) => {
+          const day = beforeDay - 1 - i; // newest first, descending — like the API
+          const ts = `2026-01-${String(day).padStart(2, '0')}T00:00:00.000+09:00`;
+          return {
+            timestamp: ts,
+            openPrice: '1',
+            highPrice: '1',
+            lowPrice: '1',
+            closePrice: '1',
+            volume: '1',
+            currency: 'KRW',
+          };
+        });
+        return { candles, nextBefore };
+      }
+
+      it('does a single request when totalCount fits in one page and caps to count', async () => {
+        const page = makePage(20, 200, '2026-01-...cursor');
+        const fetchMock = createMockFetch({ result: page });
+        global.fetch = fetchMock;
+        const data = await makeClient().getMultipleCandles('005930', '1d', 200);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock.mock.calls[0][0]).toContain('count=200');
+        expect(data.candles).toHaveLength(200);
+        // ascending by time
+        expect(data.candles[0].timestamp < data.candles[199].timestamp).toBe(true);
+      });
+
+      it('walks the nextBefore cursor, dedupes the inclusive boundary, sorts ascending, and caps to totalCount', async () => {
+        // Page 1: days 19..10 (10 candles), cursor = day 10 timestamp.
+        // Page 2: cursor is inclusive, so it re-returns day 10 then 9..1.
+        const day10 = '2026-01-10T00:00:00.000+09:00';
+        const page1 = makePage(20, 10, day10);
+        const page2 = {
+          candles: [
+            { timestamp: day10, openPrice: '1', highPrice: '1', lowPrice: '1', closePrice: '1', volume: '1', currency: 'KRW' },
+            ...makePage(10, 9, null).candles,
+          ],
+          nextBefore: null,
+        };
+        const fetchMock = jest
+          .fn()
+          .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(JSON.stringify({ result: page1 })) })
+          .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(JSON.stringify({ result: page2 })) });
+        global.fetch = fetchMock as unknown as typeof global.fetch;
+
+        const data = await makeClient().getMultipleCandles('005930', '1d', 15);
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        // page 1 requested 200 cap (min(15,200)); page 2 requested remaining (min(5,200))
+        expect(fetchMock.mock.calls[0][0]).toContain('count=15');
+        expect(fetchMock.mock.calls[1][0]).toContain('before=2026-01-10');
+        // 19 unique days available, capped to 15, deduped (day10 appears once), ascending
+        expect(data.candles).toHaveLength(15);
+        const times = data.candles.map((c) => c.timestamp);
+        expect(new Set(times).size).toBe(15);
+        expect([...times].sort()).toEqual(times);
+        // capped to the 15 most-recent days (5..19) -> oldest kept is day 05
+        expect(times[0]).toBe('2026-01-05T00:00:00.000+09:00');
+        expect(times[14]).toBe('2026-01-19T00:00:00.000+09:00');
+      });
+
+      it('stops early when nextBefore is null (history exhausted) without padding', async () => {
+        const page = makePage(20, 50, null);
+        const fetchMock = createMockFetch({ result: page });
+        global.fetch = fetchMock;
+        const data = await makeClient().getMultipleCandles('005930', '1d', 1000);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(data.candles).toHaveLength(50);
+        expect(data.nextBefore).toBeNull();
+      });
+    });
   });
 
   describe('stock & market info', () => {

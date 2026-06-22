@@ -1,15 +1,17 @@
 import {
   DEFAULT_BASE_URL,
+  MAX_CANDLES_PER_REQUEST,
   REQUEST_TIMEOUT_MS,
   type CandleInterval,
   type Currency,
 } from '../config/constants';
-import { buildQuery } from '../utils/helpers';
+import { buildQuery, sleep } from '../utils/helpers';
 import { getAccessToken } from '../auth/token-store';
 import { TossApiError } from './errors';
 import type {
   Account,
   BuyingPowerResponse,
+  Candle,
   CandlePageResponse,
   CandleParams,
   Commission,
@@ -53,6 +55,12 @@ interface RequestOptions {
   body?: unknown;
   accountSeq?: number;
 }
+
+/**
+ * Delay between paginated candle requests, in ms. The API rate-limits at
+ * ~5 req/s per group, so a small pause keeps multi-page fetches well under it.
+ */
+const CANDLE_PAGE_DELAY_MS = 200;
 
 async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
   const controller = new AbortController();
@@ -230,6 +238,53 @@ export class TossClient {
         adjusted: params.adjusted,
       },
     });
+  }
+
+  /**
+   * Fetch up to `totalCount` candles, auto-paginating past the per-request cap
+   * of {@link MAX_CANDLES_PER_REQUEST}. Each page requests the remaining count
+   * (capped to the per-request max) and walks backwards via the returned
+   * `nextBefore` cursor until enough candles are collected or the cursor is
+   * `null` (history exhausted). The cursor is inclusive of its own timestamp,
+   * so results are deduped by timestamp and returned sorted ascending by time,
+   * never exceeding `totalCount`. Requests are throttled to stay under the
+   * ~5 req/s rate limit.
+   */
+  async getMultipleCandles(
+    symbol: string,
+    interval: CandleInterval,
+    totalCount: number,
+    params: Omit<CandleParams, 'count'> = {},
+  ): Promise<CandlePageResponse> {
+    const byTime = new Map<string, Candle>();
+    let before = params.before;
+    let lastNextBefore: string | null = null;
+    let firstPage = true;
+
+    while (byTime.size < totalCount) {
+      if (!firstPage) await sleep(CANDLE_PAGE_DELAY_MS);
+      firstPage = false;
+
+      const remaining = totalCount - byTime.size;
+      const page = await this.getCandles(symbol, interval, {
+        count: Math.min(remaining, MAX_CANDLES_PER_REQUEST),
+        before,
+        adjusted: params.adjusted,
+      });
+
+      for (const candle of page.candles) byTime.set(candle.timestamp, candle);
+      lastNextBefore = page.nextBefore;
+
+      // Stop when history is exhausted or a page returns nothing new.
+      if (!page.nextBefore || page.candles.length === 0) break;
+      before = page.nextBefore;
+    }
+
+    const candles = Array.from(byTime.values())
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+      .slice(-totalCount);
+
+    return { candles, nextBefore: byTime.size > totalCount ? null : lastNextBefore };
   }
 
   // ─── Stock Info ───────────────────────────────────────────────────────

@@ -29,7 +29,8 @@ toss-cli config init        # interactive — stores ~/.toss-cli/config.json (06
 # Market data
 toss-cli market price 005930,AAPL -o json
 toss-cli market orderbook 005930
-toss-cli market candles 005930 -i 1d -n 100
+toss-cli market candles 005930 -i 1d -n 200              # max 200 bars/request
+toss-cli market candles 005930 -i 1d -n 1000 --paginate  # auto-paginate for more
 
 # Account
 toss-cli account list

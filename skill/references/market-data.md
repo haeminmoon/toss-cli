@@ -10,13 +10,17 @@ Symbols: KR = 6-digit code (`005930`), US = ticker (`AAPL`, `BRK.B`). All comman
 | `orderbook <symbol>` | Bid/ask levels with volume. |
 | `trades <symbol> [-n N]` | Recent executions, `N` ≤ 50. |
 | `price-limits <symbol>` | Daily upper/lower limit; `null` for US. |
-| `candles <symbol> -i <1m\|1d> [-n N] [--before ISO] [--adjusted]` | OHLCV, up to 200. `nextBefore` paginates. |
+| `candles <symbol> -i <1m\|1d> [-n N] [--paginate] [--before ISO] [--adjusted]` | OHLCV. **Max 200 bars/request** (server 400 at 201); default `N`=200. Use `--paginate` to fetch more — it walks the `nextBefore` cursor 200 at a time, dedupes + sorts ascending, caps to `N`. Without `--paginate`, `N` > 200 errors locally. |
 
 ```bash
 toss-cli market price 005930,000660,AAPL
 toss-cli market candles 005930 -i 1m -n 60
+toss-cli market candles 005930 -i 1d -n 200                 # one request, max bars
+toss-cli market candles 005930 -i 1d -n 1000 --paginate     # auto-paginate (~5 pages)
 toss-cli market candles 005930 -i 1d --before 2026-06-01T00:00:00+09:00
 ```
+
+To paginate manually (or from the MCP `get_candles` tool): take `nextBefore` from each response and pass it as the next `--before` / `before`; stop when `nextBefore` is `null`.
 
 ## Stock info (`toss-cli stock ...`)
 

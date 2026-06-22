@@ -35,7 +35,7 @@ src/
 │   ├── helpers.ts            # defineTool(), createClient(), resolveAccountSeq(), mcp{Text,Json,Error}, withErrorHandling
 │   └── tools/                # MCP tool groups: market, stock, info, account, order
 └── utils/
-    ├── validate.ts           # parseIntStrict/parsePositiveInt/parseFloatStrict, validateSymbol, parseSymbols, parseEnum
+    ├── validate.ts           # parseIntStrict/parsePositiveInt/parseFloatStrict, validateCount, validateSymbol, parseSymbols, parseEnum
     ├── order.ts              # buildOrderCreateRequest / buildOrderModifyRequest (pure, validated)
     └── helpers.ts            # buildQuery, maskSecret, nowMs
 ```
@@ -48,6 +48,7 @@ src/
 - **Single token per client**: re-issuing invalidates the previous token → tokens are cached in `~/.toss-cli/token.json` and reused until near expiry.
 - **Success envelope**: `{ result: ... }` (unwrapped by the client). **Error envelope**: `{ error: { requestId, code, message, data? } }`. OAuth errors use `{ error, error_description }`.
 - **Endpoints**: orderbook, prices (multi), trades, price-limits, candles (1m|1d); stocks (multi), stocks/{symbol}/warnings; exchange-rate, market-calendar/KR, market-calendar/US; accounts, holdings; orders (GET list ?status=OPEN|CLOSED, POST create, GET/{id}, POST {id}/modify, POST {id}/cancel); buying-power, sellable-quantity, commissions.
+- **Candles limits & pagination**: `GET /api/v1/candles` returns **max 200 bars per request** (server 400 `invalid-request` at `count` > 200; constant `MAX_CANDLES_PER_REQUEST`). When `-n`/`count` is omitted, the CLI and MCP tool default to 200 (`DEFAULT_CANDLE_COUNT`). The response includes a **`nextBefore` cursor** (the timestamp to pass as the next `before`; `null` when history is exhausted). The cursor is **inclusive** of its own timestamp, so paginated fetches must dedupe by timestamp. To fetch more than 200: CLI `--paginate` flag, or `TossClient.getMultipleCandles(symbol, interval, totalCount, params)` — it loops 200-bar pages via `nextBefore` (throttled ~200ms/req, under the 5 req/s limit), dedupes + sorts ascending by time, and caps the result to `totalCount`. The per-request path uses `validateCount(n, MAX_CANDLES_PER_REQUEST, 'count')` to fail locally before the server 400. The MCP `get_candles` tool keeps the single-request `count` cap (`min(1).max(200)`); callers paginate by passing the returned `nextBefore` as `before`.
 - **Order create** is a oneOf: quantity-based (KR+US, integer quantity, LIMIT needs price) or amount-based (US MARKET only, regular hours).
 
 ## Patterns & Conventions

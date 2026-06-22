@@ -3,6 +3,11 @@ export function nowMs(): number {
   return Date.now();
 }
 
+/** Resolve after `ms` milliseconds (used to throttle paginated requests). */
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * Build a URL query string from a record, omitting undefined / null / '' values.
  * Returns '' when there are no parameters, otherwise a string beginning with '?'.

@@ -83,9 +83,12 @@ toss-cli market price 005930,AAPL              # 현재가 (최대 200종목)
 toss-cli market orderbook 005930               # 호가
 toss-cli market trades 005930 -n 20            # 최근 체결 (최대 50)
 toss-cli market price-limits 005930            # 상/하한가 (미국은 null)
-toss-cli market candles 005930 -i 1d -n 100    # OHLCV (간격 1m 또는 1d, 최대 200)
+toss-cli market candles 005930 -i 1d -n 200    # OHLCV (간격 1m 또는 1d, 요청당 최대 200)
+toss-cli market candles 005930 -i 1d -n 1000 --paginate   # 200개 초과는 자동 페이지네이션 (nextBefore 커서)
 toss-cli market candles 005930 -i 1d --adjusted --before 2026-06-01T00:00:00+09:00
 ```
+
+> **캔들 개수:** API는 **요청당 최대 200개**를 반환합니다(201개 이상은 서버가 거부). `-n`을 생략하면 200개를 가져옵니다. 200개를 초과해 가져오려면 `--paginate`를 붙이세요 — 응답의 `nextBefore` 커서를 따라 200개씩 페이지를 반복 조회하고(요청 간 ~200ms 대기, 5 req/s 이하), 시간 오름차순으로 중복 제거·정렬한 뒤 `-n`개로 잘라 반환합니다. `--paginate` 없이 `-n`이 200을 넘으면 로컬에서 명확한 에러로 막습니다.
 
 ### 종목 정보 (`stock`)
 
