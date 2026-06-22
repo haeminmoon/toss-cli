@@ -1,0 +1,76 @@
+{
+  "name": "@2oolkit/toss-cli",
+  "version": "0.1.0",
+  "description": "CLI & MCP server for the Toss Securities (토스증권) Open API — query KR/US stock prices, manage your account, and place orders",
+  "author": "haeminmoon",
+  "license": "MIT",
+  "homepage": "https://github.com/haeminmoon/toss-cli#readme",
+  "bugs": {
+    "url": "https://github.com/haeminmoon/toss-cli/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haeminmoon/toss-cli.git"
+  },
+  "keywords": [
+    "toss",
+    "tossinvest",
+    "toss-securities",
+    "토스증권",
+    "korea",
+    "krx",
+    "kospi",
+    "kosdaq",
+    "stock",
+    "stocks",
+    "equities",
+    "trading",
+    "brokerage",
+    "cli",
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "claude",
+    "cursor",
+    "windsurf",
+    "openapi",
+    "rest"
+  ],
+  "type": "commonjs",
+  "bin": {
+    "toss-cli": "dist/index.js",
+    "toss-mcp": "dist/mcp.js"
+  },
+  "files": [
+    "dist",
+    "skill",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "ts-node src/index.ts",
+    "lint": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.27.1",
+    "commander": "^13.1.0",
+    "zod": "3.24.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.10.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

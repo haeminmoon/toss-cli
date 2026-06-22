@@ -1,0 +1,25 @@
+node_modules/
+dist/
+*.js.map
+.env
+.env.*
+.mcp.json
+.claude/
+.spec/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test
+coverage/
+
+# Build
+*.tsbuildinfo
+*.log
