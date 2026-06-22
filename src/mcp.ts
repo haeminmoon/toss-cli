@@ -8,7 +8,7 @@ import { registerOrderTools } from './mcp/tools/order';
 
 const server = new McpServer({
   name: 'toss-mcp',
-  version: '0.1.0',
+  version: '0.1.1',
 });
 
 registerMarketTools(server);

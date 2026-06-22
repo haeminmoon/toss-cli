@@ -13,7 +13,7 @@ program
   .description(
     'CLI for the Toss Securities (토스증권) Open API — query KR/US stock data, manage your account, and place orders',
   )
-  .version('0.1.0');
+  .version('0.1.1');
 
 program.exitOverride((err) => {
   if (err.code === 'commander.helpDisplayed' || err.code === 'commander.version') {

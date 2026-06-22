@@ -142,14 +142,16 @@ toss-cli order get <orderId>
 
 `toss-cli`는 모든 기능을 툴로 제공하는 MCP 서버(`toss-mcp`)를 함께 배포합니다.
 
-MCP 클라이언트(Claude Desktop / Cursor / Windsurf) 설정에 추가:
+### Claude Desktop / Cursor / Windsurf (JSON)
+
+MCP 클라이언트 설정에 추가:
 
 ```json
 {
   "mcpServers": {
     "toss": {
       "command": "npx",
-      "args": ["-y", "@2oolkit/toss-cli", "toss-mcp"],
+      "args": ["-y", "-p", "@2oolkit/toss-cli", "toss-mcp"],
       "env": {
         "TOSS_CLIENT_ID": "tsck_live_xxx",
         "TOSS_CLIENT_SECRET": "tssk_live_yyy",
@@ -160,7 +162,24 @@ MCP 클라이언트(Claude Desktop / Cursor / Windsurf) 설정에 추가:
 }
 ```
 
-이미 `toss-cli config init`을 실행했다면 `env` 블록은 생략 가능합니다 — 서버도 `~/.toss-cli/config.json`을 읽습니다.
+### Codex CLI (TOML)
+
+`~/.codex/config.toml`에 추가:
+
+```toml
+[mcp_servers.toss]
+command = "npx"
+args = ["-y", "-p", "@2oolkit/toss-cli", "toss-mcp"]
+
+[mcp_servers.toss.env]
+TOSS_CLIENT_ID = "tsck_live_xxx"
+TOSS_CLIENT_SECRET = "tssk_live_yyy"
+TOSS_ACCOUNT_SEQ = "1"
+```
+
+> **참고:** 패키지에 bin이 2개(`toss-cli`, `toss-mcp`)라, npx로 MCP 서버를 띄울 땐 반드시 `-p`로 패키지를 지정해야 합니다 (`npx -y -p @2oolkit/toss-cli toss-mcp`). `-p` 없이 `npx @2oolkit/toss-cli toss-mcp`로 쓰면 CLI가 실행되며 `unknown command 'toss-mcp'` 에러가 납니다.
+
+이미 `toss-cli config init`을 실행했다면(또는 `~/.toss-cli/config.json`이 있으면) 위의 `env` 블록은 생략 가능합니다 — 서버가 해당 파일에서 크리덴셜을 읽습니다.
 
 **툴 목록:** `get_prices`, `get_orderbook`, `get_trades`, `get_price_limits`, `get_candles`, `get_stocks`, `get_stock_warnings`, `get_exchange_rate`, `get_market_calendar`, `get_accounts`, `get_holdings`, `get_buying_power`, `get_sellable_quantity`, `get_commissions`, `list_orders`, `get_order`, `create_order`, `modify_order`, `cancel_order`.
 
