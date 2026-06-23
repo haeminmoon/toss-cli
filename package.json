@@ -1,6 +1,6 @@
 {
   "name": "@2oolkit/toss-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "CLI & MCP server for the Toss Securities (토스증권) Open API — query KR/US stock prices, manage your account, and place orders",
   "author": "haeminmoon",
   "license": "MIT",
